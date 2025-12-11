@@ -1,0 +1,22 @@
+export const states = {
+  Kerala: [
+    "Thiruvananthapuram",
+    "Kollam",
+    "Pathanamthitta",
+    "Alappuzha",
+    "Kottayam",
+    "Idukki",
+    "Ernakulam",
+    "Thrissur",
+    "Palakkad",
+    "Malappuram",
+    "Kozhikode",
+    "Wayanad",
+    "Kannur",
+    "Kasaragod",
+  ],
+  TamilNadu: ["Chennai", "Coimbatore", "Madurai", "Salem"],
+  Karnataka: ["Bengaluru", "Mysuru", "Mangaluru"],
+  AndhraPradesh: ["Visakhapatnam", "Vijayawada", "Guntur"],
+  Telangana: ["Hyderabad", "Warangal", "Nizamabad"],
+};
