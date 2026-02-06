@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: "https://water-montoring-system-backend-1.onrender.comgi",
 });
 
 // Attach token automatically
