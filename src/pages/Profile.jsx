@@ -3,59 +3,63 @@ import React, { useState, useEffect, useContext } from "react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 
-import { Box, Button, Typography, TextField, MenuItem } from "@mui/material";
-import { AuthContext } from "../context/AuthContext";
+import {
+  Box,
+  Button,
+  Typography,
+  TextField,
+  MenuItem,
+  Avatar,
+} from "@mui/material";
 
-// FIX: Make sure the filename is correct → location or locations
+import { AuthContext } from "../context/AuthContext";
 import { states } from "../utils/location";
 
 function Profile() {
-  const { logout } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
 
   const [editMode, setEditMode] = useState(false);
 
-  const [user, setUser] = useState({
-    fullName: "",
+  const [details, setDetails] = useState({
     phone: "",
-    email: "",
     state: "",
     district: "",
     source: "",
   });
 
-  const [profilePic, setProfilePic] = useState("");
-
+  // ================================
+  // LOAD PROFILE (PER USER)
+  // ================================
   useEffect(() => {
-    const savedUser = JSON.parse(localStorage.getItem("userData"));
-    if (savedUser) setUser(savedUser);
+    if (!user?.email) return;
 
-    const savedPic = localStorage.getItem("profilePic");
-    if (savedPic) setProfilePic(savedPic);
-  }, []);
+    const saved = localStorage.getItem(
+      `profileDetails_${user.email}`
+    );
 
+    if (saved) {
+      setDetails(JSON.parse(saved));
+    }
+  }, [user]);
+
+  // ================================
+  // SAVE PROFILE (PER USER)
+  // ================================
   const handleSave = () => {
-    localStorage.setItem("userData", JSON.stringify(user));
+    if (!user?.email) return;
+
+    localStorage.setItem(
+      `profileDetails_${user.email}`,
+      JSON.stringify(details)
+    );
+
     setEditMode(false);
-  };
-
-  const handlePicChange = (e) => {
-    const file = e.target.files[0];
-    const reader = new FileReader();
-
-    reader.onloadend = () => {
-      setProfilePic(reader.result);
-      localStorage.setItem("profilePic", reader.result);
-    };
-
-    if (file) reader.readAsDataURL(file);
   };
 
   return (
     <div style={{ display: "flex" }}>
-      {/* Sidebar */}
       <Sidebar />
 
-      {/* Main Content */}
       <Box sx={{ flex: 1 }}>
         <Topbar />
 
@@ -64,44 +68,33 @@ function Profile() {
             Profile
           </Typography>
 
-          {/* Profile Picture */}
-          <Box
+          {/* AVATAR */}
+          <Avatar
+            src={user?.profilePic || ""}
+            alt={user?.name}
             sx={{
-              width: 150,
-              height: 150,
-              borderRadius: "50%",
-              overflow: "hidden",
-              border: "3px solid #0077b6",
-              mb: 3,
+              width: 140,
+              height: 140,
+              border: "3px solid #1976d2",
+              mb: 2,
             }}
           >
-            <img
-              src={
-                profilePic ||
-                "https://cdn-icons-png.flaticon.com/512/847/847969.png"
-              }
-              alt="Profile"
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
-          </Box>
-
-          <Button variant="contained" component="label" sx={{ mb: 3 }}>
-            Change Picture
-            <input hidden type="file" accept="image/*" onChange={handlePicChange} />
-          </Button>
+            {!user?.profilePic && user?.name?.charAt(0)}
+          </Avatar>
 
           {/* VIEW MODE */}
           {!editMode && (
             <>
-              <Typography variant="h6">
-                {user.fullName || "Name not set"}
+              <Typography variant="h6">{user?.name}</Typography>
+              <Typography>Email: {user?.email}</Typography>
+              <Typography>Phone: {details.phone || "Not added"}</Typography>
+              <Typography>State: {details.state || "Not added"}</Typography>
+              <Typography>
+                District: {details.district || "Not added"}
               </Typography>
-
-              <Typography>Phone: {user.phone || "Not added"}</Typography>
-              <Typography>Email: {user.email || "Not added"}</Typography>
-              <Typography>State: {user.state || "Not added"}</Typography>
-              <Typography>District: {user.district || "Not added"}</Typography>
-              <Typography>Water Source: {user.source || "Not added"}</Typography>
+              <Typography>
+                Water Source: {details.source || "Not added"}
+              </Typography>
 
               <Button
                 variant="contained"
@@ -117,19 +110,13 @@ function Profile() {
           {editMode && (
             <>
               <TextField
-                label="Full Name"
-                fullWidth
-                sx={{ mb: 2 }}
-                value={user.fullName}
-                onChange={(e) => setUser({ ...user, fullName: e.target.value })}
-              />
-
-              <TextField
                 label="Phone"
                 fullWidth
                 sx={{ mb: 2 }}
-                value={user.phone}
-                onChange={(e) => setUser({ ...user, phone: e.target.value })}
+                value={details.phone}
+                onChange={(e) =>
+                  setDetails({ ...details, phone: e.target.value })
+                }
               />
 
               <TextField
@@ -137,8 +124,14 @@ function Profile() {
                 select
                 fullWidth
                 sx={{ mb: 2 }}
-                value={user.state}
-                onChange={(e) => setUser({ ...user, state: e.target.value })}
+                value={details.state}
+                onChange={(e) =>
+                  setDetails({
+                    ...details,
+                    state: e.target.value,
+                    district: "",
+                  })
+                }
               >
                 {Object.keys(states).map((s) => (
                   <MenuItem key={s} value={s}>
@@ -152,12 +145,14 @@ function Profile() {
                 select
                 fullWidth
                 sx={{ mb: 2 }}
-                value={user.district}
-                onChange={(e) => setUser({ ...user, district: e.target.value })}
-                disabled={!user.state}
+                disabled={!details.state}
+                value={details.district}
+                onChange={(e) =>
+                  setDetails({ ...details, district: e.target.value })
+                }
               >
-                {user.state &&
-                  states[user.state].map((d) => (
+                {details.state &&
+                  states[details.state].map((d) => (
                     <MenuItem key={d} value={d}>
                       {d}
                     </MenuItem>
@@ -169,8 +164,10 @@ function Profile() {
                 select
                 fullWidth
                 sx={{ mb: 2 }}
-                value={user.source}
-                onChange={(e) => setUser({ ...user, source: e.target.value })}
+                value={details.source}
+                onChange={(e) =>
+                  setDetails({ ...details, source: e.target.value })
+                }
               >
                 <MenuItem value="Tap Water">Tap Water</MenuItem>
                 <MenuItem value="Well Water">Well Water</MenuItem>
@@ -178,11 +175,18 @@ function Profile() {
                 <MenuItem value="RO Tank">RO Tank</MenuItem>
               </TextField>
 
-              <Button variant="contained" sx={{ mr: 2 }} onClick={handleSave}>
+              <Button
+                variant="contained"
+                sx={{ mr: 2 }}
+                onClick={handleSave}
+              >
                 Save
               </Button>
 
-              <Button variant="outlined" onClick={() => setEditMode(false)}>
+              <Button
+                variant="outlined"
+                onClick={() => setEditMode(false)}
+              >
                 Cancel
               </Button>
             </>

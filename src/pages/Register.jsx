@@ -5,44 +5,53 @@ import {
   TextField,
   Button,
   Typography,
-  Paper
+  Paper,
+  Snackbar
 } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 function Register() {
   const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(""); // optional (not saved in backend yet)
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [openSnack, setOpenSnack] = useState(false);
+  const [snackMsg, setSnackMsg] = useState("");
 
   const navigate = useNavigate();
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
 
-    // create full user object
-    const userData = {
-      fullName,
-      phone,
-      email,
-      password,
-    };
+    try {
+      await axios.post("http://localhost:5000/api/auth/register", {
+        name: fullName,
+        email,
+        password,
+        role: "admin" // or "user"
+      });
 
-    // save to LS
-    localStorage.setItem("userData", JSON.stringify(userData));
+      setSnackMsg("Registration successful!");
+      setOpenSnack(true);
 
-    // login automatically
-    localStorage.setItem("user", email);
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
 
-    // redirect to dashboard
-    navigate("/");
+    } catch (error) {
+      setSnackMsg(
+        error.response?.data?.message || "Registration failed"
+      );
+      setOpenSnack(true);
+    }
   };
 
   return (
     <Box
       sx={{
         minHeight: "100vh",
-        backgroundImage: `url("https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=1740&q=80")`,
+        backgroundImage: `url("https://wallpaperaccess.com/full/731608.jpg")`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         position: "relative",
@@ -51,7 +60,6 @@ function Register() {
         alignItems: "center",
       }}
     >
-      {/* overlay */}
       <Box
         sx={{
           position: "absolute",
@@ -73,11 +81,11 @@ function Register() {
           zIndex: 10,
         }}
       >
-        <Typography variant="h4" sx={{ mb: 2, textAlign: "center" }}>
+        <Typography variant="h4" textAlign="center" mb={2}>
           Smart Water System
         </Typography>
 
-        <Typography variant="h6" sx={{ mb: 3, textAlign: "center" }}>
+        <Typography variant="h6" textAlign="center" mb={3}>
           Register
         </Typography>
 
@@ -97,7 +105,6 @@ function Register() {
             sx={{ mb: 2 }}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            required
           />
 
           <TextField
@@ -125,13 +132,20 @@ function Register() {
           </Button>
         </form>
 
-        <Typography variant="body2" sx={{ mt: 2, textAlign: "center" }}>
+        <Typography mt={2} textAlign="center">
           Already have an account?{" "}
           <Link to="/login" style={{ color: "#0a9396", fontWeight: "bold" }}>
             Login
           </Link>
         </Typography>
       </Paper>
+
+      <Snackbar
+        open={openSnack}
+        autoHideDuration={2000}
+        onClose={() => setOpenSnack(false)}
+        message={snackMsg}
+      />
     </Box>
   );
 }

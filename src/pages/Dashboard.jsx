@@ -1,180 +1,190 @@
 // rfce
-import React, { useEffect, useState } from 'react'
-import Sidebar from '../components/Sidebar'
-import WaterCard from '../components/Cards/WaterCard'
-import LineChart from '../components/Charts/LineChart'
-import PieChart from '../components/Charts/PieChart'
-import GaugeChart from '../components/Charts/GaugeChart'
-import { Box, Typography,Paper } from '@mui/material'
-import { districtProfiles } from "../utils/districtProfiles";
+import React, { useEffect, useState, useContext } from "react";
+import Sidebar from "../components/Sidebar";
+import WaterCard from "../components/Cards/WaterCard";
+import BarChart from "../components/Charts/BarChart";
+import PieChart from "../components/Charts/PieChart";
+import GaugeChart from "../components/Charts/GaugeChart";
+import { Box, Typography, Paper, Button } from "@mui/material";
+import { getWaterData } from "../services/waterService";
+import { AuthContext } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+
+
 
 function Dashboard() {
-  const [selectedLocation, setSelectedLocation] = useState(null);
+
+  // ================= AUTH =================
+  const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const isLoggedIn = Boolean(localStorage.getItem("token"));
+
+  // Admin Redirect
+  useEffect(() => {
+    if (user?.role === "admin") {
+      navigate("/admin");
+    }
+  }, [user, navigate]);
+
+  // ================= STATES =================
+  const [loadingCharts, setLoadingCharts] = useState(true);
+
+  const [freeTrials, setFreeTrials] = useState(1);
   const [latestReading, setLatestReading] = useState(null);
   const [readings, setReadings] = useState([]);
 
+
+
+
+
+
+
+
+
+
+  // ================= FREE TRIAL =================
   useEffect(() => {
-    const email = localStorage.getItem("user");
-
-    // Load selected location for THIS user
-    const loc = JSON.parse(localStorage.getItem(`selectedLocation_${email}`));
-    setSelectedLocation(loc);
-
-    // Load readings for this user
-    const data = JSON.parse(localStorage.getItem(`readings_${email}`)) || [];
-    setReadings(data);
-
-    // Latest reading is first (newest) reading
-    if (data.length > 0) {
-      setLatestReading(data[0]);
+    const stored = localStorage.getItem("freeTrials");
+    if (!stored) {
+      localStorage.setItem("freeTrials", "1");
+      setFreeTrials(1);
+    } else {
+      setFreeTrials(Number(stored));
     }
   }, []);
-  
-// Compare user's reading with district profile
-let comparison = {
-  ph: "",
-  tds: "",
-  turbidity: ""
-};
 
-if (selectedLocation && latestReading) {
-  const profile =
-    districtProfiles[selectedLocation.stateName]?.[selectedLocation.district];
+  // ================= LOAD WATER DATA =================
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        const waterRes = await getWaterData();
 
-  if (profile) {
-    // pH comparison
-    if (latestReading.ph > profile.ph + 0.3) {
-      comparison.ph = "Your pH is slightly higher than typical for this area.";
-    } else if (latestReading.ph < profile.ph - 0.3) {
-      comparison.ph = "Your pH is lower than average for this district.";
-    } else {
-      comparison.ph = "pH is within the usual range for this region.";
-    }
+        console.log("API WATER DATA:", waterRes.data);
 
-    // TDS comparison
-    if (latestReading.tds > profile.tds + 100) {
-      comparison.tds = "TDS is significantly higher than expected in this area.";
-    } else if (latestReading.tds < profile.tds - 100) {
-      comparison.tds = "TDS is unusually low compared to local groundwater.";
-    } else {
-      comparison.tds = "TDS is normal for this location.";
-    }
+       const normalized = (waterRes.data || []).map((item) => ({
 
-    // Turbidity comparison
-    if (latestReading.turbidity > profile.turbidity + 1) {
-      comparison.turbidity =
-        "Turbidity is higher than usual — possible contamination.";
-    } else if (latestReading.turbidity < profile.turbidity - 0.5) {
-      comparison.turbidity = "Turbidity is cleaner than typical for this area.";
-    } else {
-      comparison.turbidity = "Turbidity is normal for this district.";
-    }
-  }
-}
+          ...item,
+          ph: item.ph,
+          tds: item.tds,
+          turbidity: item.turbidity,
+          temp: item.temp
+        }));
 
-  // Determine water status for KPI cards
+        setReadings(normalized);
+
+        if (normalized.length > 0) {
+          setLatestReading(normalized[0]);
+        } else {
+          setLatestReading(null);
+        }
+
+        setLoadingCharts(false);
+      } catch (err) {
+        console.error("Dashboard Load Error:", err);
+      }
+    };
+
+    if (isLoggedIn) loadDashboardData();
+  }, [isLoggedIn]);
+
+
+
+
+
+  // ================= STATUS =================
   const getStatus = (value, type) => {
-    if (type === "ph") {
-      if (value >= 6.5 && value <= 8.5) return "safe";
-      return "danger";
-    }
-    if (type === "tds") {
-      if (value <= 500) return "safe";
-      if (value <= 900) return "warning";
-      return "danger";
-    }
-    if (type === "turbidity") {
-      if (value <= 1) return "safe";
-      if (value <= 5) return "warning";
-      return "danger";
-    }
+    if (!value) return "safe";
+
+    if (type === "ph")
+      return value >= 6.5 && value <= 8.5 ? "safe" : "danger";
+
+    if (type === "tds")
+      return value <= 500 ? "safe" : value <= 900 ? "warning" : "danger";
+
+    if (type === "turbidity")
+      return value <= 1 ? "safe" : value <= 5 ? "warning" : "danger";
+
     return "safe";
   };
 
+  // ================= UI =================
   return (
-    <div style={{ display: 'flex' }}>
+    <div style={{ display: "flex" }}>
       <Sidebar />
 
-      <div style={{
-        flex: 1,
-        padding: '20px',
-        background: '#f5f7fa',
-        minHeight: "100vh"
-      }}>
+      <div style={{ flex: 1, padding: 20, background: "#f5f7fa", minHeight: "100vh" }}>
+        <h1>Dashboard</h1>
 
-        <h1 style={{ marginBottom: '20px' }}>Dashboard</h1>
-
-        {/* SELECTED LOCATION INFO */}
-        {selectedLocation ? (
-          <Typography sx={{ mb: 3, fontSize: "18px", color: "#333" }}>
-            Monitoring Location:
-            <strong> {selectedLocation.locationName}</strong>
-            ({selectedLocation.stateName}, {selectedLocation.district})
-          </Typography>
-        ) : (
-          <Typography sx={{ mb: 3, color: "gray" }}>
-            No location selected yet.
+        {!isLoggedIn && (
+          <Typography align="center" color="gray">
+            Please login to view water quality data.
           </Typography>
         )}
 
-        {/* KPI CARDS */}
-        <Box sx={{ display: 'flex', gap: 3 }}>
-          <WaterCard
-            title="pH Level"
-            value={latestReading ? latestReading.ph : "--"}
-            status={latestReading ? getStatus(latestReading.ph, "ph") : "safe"}
-          />
+        {isLoggedIn && (
+          <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between" }}>
+            <Typography>🎁 Free Trials Left: {freeTrials}</Typography>
+            <Button variant="contained" onClick={() => navigate("/payment")}>
+              Upgrade
+            </Button>
+          </Box>
+        )}
 
-          <WaterCard
-            title="TDS (ppm)"
-            value={latestReading ? latestReading.tds : "--"}
-            status={latestReading ? getStatus(latestReading.tds, "tds") : "safe"}
-          />
+        {/* CARDS */}
+        {isLoggedIn && (
+          <Box sx={{ display: "flex", gap: 3 }}>
+            <WaterCard
+              title="pH Level"
+              value={latestReading?.ph || "--"}
+              status={getStatus(latestReading?.ph, "ph")}
+            />
 
-          <WaterCard
-            title="Turbidity"
-            value={latestReading ? `${latestReading.turbidity} NTU` : "--"}
-            status={latestReading ? getStatus(latestReading.turbidity, "turbidity") : "safe"}
-          />
-        </Box>
-{/* LOCATION-BASED ANALYSIS CARD */}
-{selectedLocation && latestReading && (
-  <Paper sx={{ p: 3, mt: 4, mb: 4 }}>
-    <Typography variant="h6" sx={{ mb: 1 }}>
-      Location-Based Water Analysis
-    </Typography>
+            <WaterCard
+              title="TDS (ppm)"
+              value={latestReading?.tds || "--"}
+              status={getStatus(latestReading?.tds, "tds")}
+            />
 
-    <Typography sx={{ mb: 1 }}>
-      <strong>pH Analysis:</strong> {comparison.ph}
-    </Typography>
+            <WaterCard
+              title="Turbidity (NTU)"
+              value={latestReading?.turbidity || "--"}
+              status={getStatus(latestReading?.turbidity, "turbidity")}
+            />
+          </Box>
+        )}
 
-    <Typography sx={{ mb: 1 }}>
-      <strong>TDS Analysis:</strong> {comparison.tds}
-    </Typography>
-
-    <Typography sx={{ mb: 1 }}>
-      <strong>Turbidity Analysis:</strong> {comparison.turbidity}
-    </Typography>
-  </Paper>
+        {/* CHARTS */}
+        {isLoggedIn && (
+          <Box sx={{ mt: 5 }}>
+           {loadingCharts && (
+  <Typography align="center">Loading charts...</Typography>
 )}
 
-        {/* CHARTS SECTION */}
-        <Box sx={{ display: 'flex', gap: 3, mt: 5 }}>
-          {/* Left side: Line chart */}
-          <Box sx={{ flex: 2 }}>
-            <LineChart readings={readings} />
+{!loadingCharts && readings.length === 0 && (
+  <Typography align="center">
+    No readings yet. Please add a reading.
+  </Typography>
+)}
+
+{!loadingCharts && readings.length > 0 && (
+
+              <Box sx={{ display: "flex", gap: 3 }}>
+                <Box sx={{ flex: 2 }}>
+                  <BarChart readings={readings} />
+                </Box>
+
+                <Box sx={{ flex: 1 }}>
+                  <GaugeChart reading={latestReading} />
+                  <PieChart readings={readings} />
+                </Box>
+              </Box>
+            )}
           </Box>
-
-          {/* Right side: Gauge + Pie chart */}
-          <Box sx={{ flex: 1 }}>
-            {/* FIXED: Correct prop name */}
-            <GaugeChart reading={latestReading} />
-
-            <PieChart readings={readings} />
-          </Box>
-        </Box>
-
+        )}
       </div>
+
+      
+
     </div>
   );
 }

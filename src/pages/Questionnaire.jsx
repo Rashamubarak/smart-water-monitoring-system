@@ -1,6 +1,8 @@
 // rfce
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
+import { addWaterData } from "../services/waterService";
+
 import Topbar from "../components/Topbar";
 import {
   Box,
@@ -44,12 +46,10 @@ function Questionnaire() {
     setAnswers({ ...answers, [key]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    const email = localStorage.getItem("user");
-    if (!email) return;
-
+  try {
     // 1) Base estimate based on source
     const baseEstimate = estimateBySource({
       source: profile?.source || "Tap Water",
@@ -57,7 +57,7 @@ function Questionnaire() {
       district: profile?.district
     });
 
-    // 2) Strong adjustment based on questionnaire
+    // 2) Adjust using questionnaire
     const finalEstimate = adjustEstimateWithAnswers(baseEstimate, answers);
 
     const payload = {
@@ -65,21 +65,23 @@ function Questionnaire() {
       tds: finalEstimate.tds,
       turbidity: finalEstimate.turbidity,
       temp: finalEstimate.temp,
-      method: "questionnaire",
-      date: new Date().toISOString().slice(0, 10),
-      note: finalEstimate.note
+      source: "questionnaire"
     };
 
-    // Save reading
-    const existing = JSON.parse(localStorage.getItem(`readings_${email}`)) || [];
-    localStorage.setItem(`readings_${email}`, JSON.stringify([payload, ...existing]));
+    // 3) SAVE TO BACKEND
+    await addWaterData(payload);
 
     setOpenSnack(true);
 
     setTimeout(() => {
-      navigate("/reports");
-    }, 1000);
-  };
+      navigate("/");   // back to dashboard
+    }, 800);
+
+  } catch (error) {
+    console.error("Questionnaire save error:", error);
+    alert("Failed to save questionnaire reading");
+  }
+};
 
   if (!profile) return null;
 

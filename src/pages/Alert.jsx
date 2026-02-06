@@ -6,60 +6,64 @@ import {
   Paper,
   Typography,
   Alert,
-  Stack,
-  Button,
-  Snackbar
+  Stack
 } from "@mui/material";
 
-import {
-  getAlertsForReading,
-  getRecommendations,
-  getWHOComparison,
-  getRandomPH,
-  getRandomTDS,
-  getRandomTurbidity
-} from "../utils/dataSimulation";
+import { getWaterData } from "../services/waterService";
 
 function Alerts() {
+
   const [reading, setReading] = useState(null);
   const [alerts, setAlerts] = useState([]);
-  const [recommendations, setRecommendations] = useState([]);
-  const [openSnack, setOpenSnack] = useState(false);
 
-  // Load real latest reading
+  // ------------------------
+  // Load latest reading from DB
+  // ------------------------
   useEffect(() => {
-    const email = localStorage.getItem("user");
-    const data = JSON.parse(localStorage.getItem(`readings_${email}`)) || [];
-
-    if (data.length > 0) {
-      setReading(data[0]); // latest reading
-      evaluateAll(data[0]);
-    }
+    loadLatestReading();
   }, []);
 
-  const evaluateAll = (sample) => {
-    setAlerts(getAlertsForReading(sample));
-    setRecommendations(getRecommendations(sample));
+  const loadLatestReading = async () => {
+    try {
+      const res = await getWaterData();
+
+      if (res.data.length > 0) {
+        const latest = res.data[0]; // newest first
+        setReading(latest);
+        generateAlerts(latest);
+      }
+    } catch (err) {
+      console.error("Failed to load alerts:", err);
+    }
   };
 
-  const handleNewSample = () => {
-    const newSample = {
-      ph: parseFloat(getRandomPH()),
-      tds: getRandomTDS(),
-      turbidity: getRandomTurbidity(),
-    };
+  // ------------------------
+  // Generate alerts
+  // ------------------------
+  const generateAlerts = (r) => {
+    const list = [];
 
-    setReading(newSample);
-    evaluateAll(newSample);
-    setOpenSnack(true);
+    if (r.ph < 6.5 || r.ph > 8.5)
+      list.push("pH out of safe range");
+
+    if (r.tds > 500)
+      list.push("High TDS detected");
+
+    if (r.turbidity > 5)
+      list.push("High turbidity level");
+
+    setAlerts(list);
   };
 
+  // ------------------------
+  // UI
+  // ------------------------
   if (!reading) {
     return (
       <div style={{ display: "flex" }}>
         <Sidebar />
-        <Box sx={{ flex: 1, p: 4 }}>
-          <Typography>No readings found. Please add a reading first.</Typography>
+        <Box sx={{ p: 4 }}>
+          <Typography>No readings found. Add a reading first.</Typography>
         </Box>
       </div>
     );
@@ -72,81 +76,37 @@ function Alerts() {
       <Box sx={{ flex: 1, p: 4 }}>
 
         {/* Reading Summary */}
-        <Paper sx={{ p: 4, mb: 3 }}>
-          <Typography variant="h5" sx={{ mb: 1 }}>
-            Alerts & Safety Status
-          </Typography>
+        <Paper sx={{ p: 3, mb: 3 }}>
+          <Typography variant="h5">Latest Water Reading</Typography>
 
-          <Typography variant="body1">
-            pH: <b>{reading.ph}</b> | TDS: <b>{reading.tds} ppm</b> | Turbidity:{" "}
-            <b>{reading.turbidity} NTU</b>
+          <Typography sx={{ mt: 1 }}>
+            pH: <b>{reading.ph}</b> | 
+            TDS: <b>{reading.tds} ppm</b> | 
+            Turbidity: <b>{reading.turbidity} NTU</b>
           </Typography>
-
-          <Button variant="outlined" sx={{ mt: 2 }} onClick={handleNewSample}>
-            Simulate New Sample
-          </Button>
         </Paper>
 
-        {/* Alert Messages */}
-        <Paper sx={{ p: 4, mb: 3 }}>
+        {/* Alerts */}
+        <Paper sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>
             Alert Messages
           </Typography>
 
           {alerts.length === 0 ? (
             <Alert severity="success">
-              All parameters are within safe limits ✔️
+              All parameters are within safe limits ✔
             </Alert>
           ) : (
             <Stack spacing={2}>
               {alerts.map((a, i) => (
-                <Alert key={i} severity={a.type}>
-                  {a.message}
+                <Alert key={i} severity="warning">
+                  {a}
                 </Alert>
               ))}
             </Stack>
           )}
         </Paper>
 
-        {/* Recommendations */}
-        <Paper sx={{ p: 4 }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Health Recommendations
-          </Typography>
-
-          <Stack spacing={1}>
-            {recommendations.map((rec, i) => (
-              <Typography key={i}>• {rec}</Typography>
-            ))}
-          </Stack>
-        </Paper>
-
-        {/* WHO Comparison */}
-        <Paper sx={{ p: 4, mt: 3 }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>WHO Comparison</Typography>
-
-          {getWHOComparison(reading).map((item, index) => (
-            <Box key={index} sx={{ mb: 1 }}>
-              <Typography>
-                {item.label}: <b>{item.value}</b> | Safe Range: {item.safeRange}
-              </Typography>
-
-              <Typography
-                color={item.status === "Safe" ? "green" : "red"}
-                sx={{ fontWeight: "bold" }}
-              >
-                Status: {item.status}
-              </Typography>
-            </Box>
-          ))}
-        </Paper>
-
-        <Snackbar
-          open={openSnack}
-          autoHideDuration={1500}
-          onClose={() => setOpenSnack(false)}
-          message="New sample generated"
-        />
       </Box>
     </div>
   );

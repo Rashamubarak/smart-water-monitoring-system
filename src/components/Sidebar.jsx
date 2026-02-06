@@ -37,6 +37,13 @@ function Sidebar() {
     navigate("/login");
   };
 
+  {localStorage.getItem("role") === "admin" && (
+  <li onClick={() => navigate("/admin")}>
+    Admin Panel
+  </li>
+)}
+
+
   const menuItems = [
     { text: "Dashboard", icon: <DashboardIcon />, path: "/" },
     { text: "Select Location", icon: <LocationOnIcon />, path: "/select-location" },

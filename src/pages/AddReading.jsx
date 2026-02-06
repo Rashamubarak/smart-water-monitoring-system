@@ -1,5 +1,4 @@
 // src/pages/AddReading.jsx
-// rfce
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
@@ -13,6 +12,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
+import api from "../services/api";
 import { estimateBySource } from "../utils/estimateFromSource";
 
 function AddReading() {
@@ -28,58 +28,52 @@ function AddReading() {
   });
 
   const [openSnack, setOpenSnack] = useState(false);
-  const [savedCount, setSavedCount] = useState(0);
   const [profile, setProfile] = useState(null);
 
+  // 🔐 Must be logged in
   useEffect(() => {
-    const email = localStorage.getItem("user");
-    if (!email) navigate("/login");
-    const arr = JSON.parse(localStorage.getItem(`readings_${email}`)) || [];
-    setSavedCount(arr.length);
+    const token = localStorage.getItem("token");
+    if (!token) navigate("/login");
 
     const u = JSON.parse(localStorage.getItem("userData"));
     setProfile(u || null);
   }, [navigate]);
 
+  // Handle input
   const handleChange = (e) => {
     setReading({ ...reading, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  // ✅ SAVE TO BACKEND
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const email = localStorage.getItem("user");
-    if (!email) {
-      navigate("/login");
-      return;
-    }
 
     if (!reading.ph || !reading.tds || !reading.turbidity) {
       setOpenSnack(true);
       return;
     }
 
-    const payload = {
-      ph: reading.ph,
-      tds: reading.tds,
-      turbidity: reading.turbidity,
-      temp: reading.temp || "",
-      date: reading.date,
-      locationName: reading.locationName || "",
-      method: "manual",
-    };
+    try {
+      await api.post("/water", {
+        ph: reading.ph,
+        tds: reading.tds,
+        turbidity: reading.turbidity,
+        temp: reading.temp,
+      });
 
-    const existing = JSON.parse(localStorage.getItem(`readings_${email}`)) || [];
-    localStorage.setItem(`readings_${email}`, JSON.stringify([payload, ...existing]));
-    setOpenSnack(true);
-    setSavedCount(existing.length + 1);
+      setOpenSnack(true);
 
-    setTimeout(() => {
-      navigate("/reports");
-    }, 800);
+      setTimeout(() => {
+        navigate("/");
+      }, 800);
+    } catch (err) {
+      console.error("Save failed", err);
+      alert("Failed to save reading");
+    }
   };
 
+  // 🔁 Auto estimate from profile
   const handleAutoEstimate = () => {
-    // use profile's state/district/source to estimate
     const base = estimateBySource({
       source: profile?.source || "Tap Water",
       state: profile?.state,
@@ -100,6 +94,7 @@ function AddReading() {
       <Sidebar />
       <Box sx={{ flex: 1 }}>
         <Topbar />
+
         <Box sx={{ p: 4, mt: 10 }}>
           <Paper sx={{ p: 3, maxWidth: 720 }}>
             <Typography variant="h5" sx={{ mb: 2 }}>
@@ -107,17 +102,6 @@ function AddReading() {
             </Typography>
 
             <form onSubmit={handleSubmit}>
-              <TextField
-                label="Date"
-                type="date"
-                name="date"
-                fullWidth
-                sx={{ mb: 2 }}
-                value={reading.date}
-                onChange={handleChange}
-                InputLabelProps={{ shrink: true }}
-              />
-
               <TextField
                 label="pH"
                 name="ph"
@@ -157,30 +141,17 @@ function AddReading() {
                 onChange={handleChange}
               />
 
-              <TextField
-                label="Location name (optional)"
-                name="locationName"
-                fullWidth
-                sx={{ mb: 2 }}
-                value={reading.locationName}
-                onChange={handleChange}
-              />
-
-              <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
+              <Box sx={{ display: "flex", gap: 2 }}>
                 <Button type="submit" variant="contained">
-                  Save Reading (Manual)
+                  Save Reading
                 </Button>
 
                 <Button variant="outlined" onClick={handleAutoEstimate}>
-                  Auto Estimate (from profile)
-                </Button>
-
-                <Button variant="outlined" onClick={() => navigate("/questionnaire")}>
-                  Smart Questionnaire
+                  Auto Estimate
                 </Button>
 
                 <Button variant="text" onClick={() => navigate("/reports")}>
-                  View Reports ({savedCount})
+                  View Reports
                 </Button>
               </Box>
             </form>
@@ -190,7 +161,7 @@ function AddReading() {
             open={openSnack}
             autoHideDuration={1500}
             onClose={() => setOpenSnack(false)}
-            message="Reading saved"
+            message="Reading saved successfully"
           />
         </Box>
       </Box>

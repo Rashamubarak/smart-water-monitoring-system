@@ -1,14 +1,13 @@
-// rfce
-import React, { useContext } from "react";
-import { Navigate } from "react-router-dom";
-import { AuthContext } from "./context/AuthContext";
+import { Navigate, Outlet } from "react-router-dom";
 
-function ProtectedRoute({ children }) {
-  const { user } = useContext(AuthContext);
+const ProtectedRoute = () => {
+  const token = localStorage.getItem("token");
 
-  if (!user) return <Navigate to="/login" />;
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
 
-  return children;
-}
+  return <Outlet />;
+};
 
 export default ProtectedRoute;
