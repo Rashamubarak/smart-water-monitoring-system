@@ -1,57 +1,51 @@
 // rfce
 import React, { useEffect, useState, useContext } from "react";
 import Sidebar from "../components/Sidebar";
+import Topbar from "../components/Topbar";
 import WaterCard from "../components/Cards/WaterCard";
 import BarChart from "../components/Charts/BarChart";
 import PieChart from "../components/Charts/PieChart";
 import GaugeChart from "../components/Charts/GaugeChart";
-import { Box, Typography, Paper, Button } from "@mui/material";
+import { Box, Typography, Button } from "@mui/material";
 import { getWaterData } from "../services/waterService";
 import { AuthContext } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-
-
+import PaymentAlertModal from "../components/modals/PaymentAlertModal";
 
 function Dashboard() {
-
-  // ================= AUTH =================
-  const { user } = useContext(AuthContext);
+  const { user, isPremium } = useContext(AuthContext);
   const navigate = useNavigate();
   const isLoggedIn = Boolean(localStorage.getItem("token"));
 
-  // Admin Redirect
-  useEffect(() => {
-    if (user?.role === "admin") {
-      navigate("/admin");
-    }
-  }, [user, navigate]);
-
-  // ================= STATES =================
   const [loadingCharts, setLoadingCharts] = useState(true);
-
-  const [freeTrials, setFreeTrials] = useState(1);
   const [latestReading, setLatestReading] = useState(null);
   const [readings, setReadings] = useState([]);
+  const [freeTrials, setFreeTrials] = useState(3);
+  const [showPaymentAlert, setShowPaymentAlert] = useState(false);
 
-
-
-
-
-
-
-
-
-
-  // ================= FREE TRIAL =================
+  // ================= TRIAL INIT (PER USER) =================
   useEffect(() => {
-    const stored = localStorage.getItem("freeTrials");
+    if (!user?._id) return;
+
+    const key = `freeTrials_${user._id}`;
+    const stored = localStorage.getItem(key);
+
     if (!stored) {
-      localStorage.setItem("freeTrials", "1");
-      setFreeTrials(1);
+      localStorage.setItem(key, "3");
+      setFreeTrials(3);
     } else {
       setFreeTrials(Number(stored));
     }
-  }, []);
+  }, [user]);
+
+  // ================= SHOW PAYMENT MODAL =================
+  useEffect(() => {
+    if (!isPremium && freeTrials === 0) {
+      setShowPaymentAlert(true);
+    } else {
+      setShowPaymentAlert(false);
+    }
+  }, [freeTrials, isPremium]);
 
   // ================= LOAD WATER DATA =================
   useEffect(() => {
@@ -59,10 +53,7 @@ function Dashboard() {
       try {
         const waterRes = await getWaterData();
 
-        console.log("API WATER DATA:", waterRes.data);
-
-       const normalized = (waterRes.data || []).map((item) => ({
-
+        const normalized = (waterRes.data || []).map((item) => ({
           ...item,
           ph: item.ph,
           tds: item.tds,
@@ -71,13 +62,7 @@ function Dashboard() {
         }));
 
         setReadings(normalized);
-
-        if (normalized.length > 0) {
-          setLatestReading(normalized[0]);
-        } else {
-          setLatestReading(null);
-        }
-
+        setLatestReading(normalized[0] || null);
         setLoadingCharts(false);
       } catch (err) {
         console.error("Dashboard Load Error:", err);
@@ -87,104 +72,109 @@ function Dashboard() {
     if (isLoggedIn) loadDashboardData();
   }, [isLoggedIn]);
 
-
-
-
-
   // ================= STATUS =================
   const getStatus = (value, type) => {
     if (!value) return "safe";
-
-    if (type === "ph")
-      return value >= 6.5 && value <= 8.5 ? "safe" : "danger";
-
-    if (type === "tds")
-      return value <= 500 ? "safe" : value <= 900 ? "warning" : "danger";
-
-    if (type === "turbidity")
-      return value <= 1 ? "safe" : value <= 5 ? "warning" : "danger";
-
+    if (type === "ph") return value >= 6.5 && value <= 8.5 ? "safe" : "danger";
+    if (type === "tds") return value <= 500 ? "safe" : value <= 900 ? "warning" : "danger";
+    if (type === "turbidity") return value <= 1 ? "safe" : value <= 5 ? "warning" : "danger";
     return "safe";
   };
 
-  // ================= UI =================
   return (
     <div style={{ display: "flex" }}>
       <Sidebar />
 
-      <div style={{ flex: 1, padding: 20, background: "#f5f7fa", minHeight: "100vh" }}>
-        <h1>Dashboard</h1>
+      <PaymentAlertModal
+        open={showPaymentAlert}
+        onUpgrade={() => navigate("/payment")}
+      />
 
-        {!isLoggedIn && (
-          <Typography align="center" color="gray">
-            Please login to view water quality data.
-          </Typography>
-        )}
+      {/* RIGHT SIDE */}
+      <div style={{ flex: 1 }}>
+        <Topbar />
 
-        {isLoggedIn && (
-          <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between" }}>
-            <Typography>🎁 Free Trials Left: {freeTrials}</Typography>
-            <Button variant="contained" onClick={() => navigate("/payment")}>
-              Upgrade
-            </Button>
-          </Box>
-        )}
+        {/* MAIN CONTENT */}
+        <div
+          style={{
+            padding: 20,
+            background: "#f5f7fa",
+            minHeight: "100vh",
+            marginTop: 70,
+          }}
+        >
+          <h1>Dashboard</h1>
 
-        {/* CARDS */}
-        {isLoggedIn && (
-          <Box sx={{ display: "flex", gap: 3 }}>
-            <WaterCard
-              title="pH Level"
-              value={latestReading?.ph || "--"}
-              status={getStatus(latestReading?.ph, "ph")}
-            />
+          {!isLoggedIn && (
+            <Typography align="center" color="gray">
+              Please login to view water quality data.
+            </Typography>
+          )}
 
-            <WaterCard
-              title="TDS (ppm)"
-              value={latestReading?.tds || "--"}
-              status={getStatus(latestReading?.tds, "tds")}
-            />
+          {isLoggedIn && (
+            <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between" }}>
+              <Typography>
+                Free Trials Left: {isPremium ? "Unlimited" : freeTrials}
+              </Typography>
 
-            <WaterCard
-              title="Turbidity (NTU)"
-              value={latestReading?.turbidity || "--"}
-              status={getStatus(latestReading?.turbidity, "turbidity")}
-            />
-          </Box>
-        )}
+              {!isPremium && (
+                <Button variant="contained" onClick={() => navigate("/payment")}>
+                  Upgrade
+                </Button>
+              )}
+            </Box>
+          )}
 
-        {/* CHARTS */}
-        {isLoggedIn && (
-          <Box sx={{ mt: 5 }}>
-           {loadingCharts && (
-  <Typography align="center">Loading charts...</Typography>
-)}
+          {isLoggedIn && (
+            <Box sx={{ display: "flex", gap: 3 }}>
+              <WaterCard
+                title="pH Level"
+                value={latestReading?.ph || "--"}
+                status={getStatus(latestReading?.ph, "ph")}
+              />
 
-{!loadingCharts && readings.length === 0 && (
-  <Typography align="center">
-    No readings yet. Please add a reading.
-  </Typography>
-)}
+              <WaterCard
+                title="TDS (ppm)"
+                value={latestReading?.tds || "--"}
+                status={getStatus(latestReading?.tds, "tds")}
+              />
 
-{!loadingCharts && readings.length > 0 && (
+              <WaterCard
+                title="Turbidity (NTU)"
+                value={latestReading?.turbidity || "--"}
+                status={getStatus(latestReading?.turbidity, "turbidity")}
+              />
+            </Box>
+          )}
 
-              <Box sx={{ display: "flex", gap: 3 }}>
-                <Box sx={{ flex: 2 }}>
-                  <BarChart readings={readings} />
+          {isLoggedIn && (
+            <Box sx={{ mt: 5 }}>
+              {loadingCharts && (
+                <Typography align="center">Loading charts...</Typography>
+              )}
+
+              {!loadingCharts && readings.length === 0 && (
+                <Typography align="center">
+                  No readings yet. Please add a reading.
+                </Typography>
+              )}
+
+              {!loadingCharts && readings.length > 0 && (
+                <Box sx={{ display: "flex", gap: 3 }}>
+                  <Box sx={{ flex: 2 }}>
+                    <BarChart readings={readings} />
+                  </Box>
+
+                  <Box sx={{ flex: 1 }}>
+                    <GaugeChart reading={latestReading} />
+                    <PieChart readings={readings} />
+                  </Box>
                 </Box>
-
-                <Box sx={{ flex: 1 }}>
-                  <GaugeChart reading={latestReading} />
-                  <PieChart readings={readings} />
-                </Box>
-              </Box>
-            )}
-          </Box>
-        )}
+              )}
+            </Box>
+          )}
+        </div>
       </div>
-
-      
-
     </div>
   );
 }

@@ -38,14 +38,14 @@ const Payment = () => {
         alignItems: "center",
         justifyContent: "center",
         background:
-          "linear-gradient(135deg, #0f2027, #203a43, #2c5364)"
+          "linear-gradient(135deg, #0f2027, #07779d, #2c5364)"
       }}
     >
       <Card sx={{ maxWidth: 420, width: "100%", borderRadius: 3 }}>
         <CardContent>
 
           <Typography variant="h5" align="center" fontWeight="bold">
-            Water Monitoring Subscription
+            Subscription
           </Typography>
 
           <Divider sx={{ my: 2 }} />
@@ -57,7 +57,7 @@ const Payment = () => {
           <Typography
             variant="h4"
             align="center"
-            color="success.main"
+            color="primary.main"
             fontWeight="bold"
           >
             ₹499 / month
@@ -81,7 +81,7 @@ const Payment = () => {
 
           <Button
             variant="contained"
-            color="success"
+            color="primary"
             fullWidth
             onClick={handlePayNow}
           >

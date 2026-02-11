@@ -18,6 +18,7 @@ import Register from "./pages/Register";
 import AdminDashboard from "./admin/AdminDashboard";
 import AdminUsers from "./admin/AdminUsers";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import AdminRoute from "./AdminRoute";
 
 import CookieConsentModal from "./components/modals/CookieConsentModal";
 import LocationPermissionModal from "./components/modals/LocationPermissionModal";
@@ -52,14 +53,17 @@ function App() {
   const acceptCookies = () => {
     localStorage.setItem("cookiesAccepted", "true");
     setShowCookies(false);
-    navigate("/login");
+
+    if (!user) navigate("/login");
   };
 
   const rejectCookies = () => {
     localStorage.setItem("cookiesAccepted", "false");
     setShowCookies(false);
-    navigate("/login");
+
+    if (!user) navigate("/login");
   };
+
 
   const allowLocation = () => {
     localStorage.setItem("locationAllowed", "true");
@@ -93,14 +97,8 @@ function App() {
       <Routes>
 
         {/* PUBLIC */}
-        <Route
-  path="/"
-  element={
-    localStorage.getItem("token")
-      ? <Dashboard />
-      : <Navigate to="/login" />
-  }
-/>
+        <Route path="/" element={<Dashboard />} />
+
 
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -117,27 +115,14 @@ function App() {
           <Route path="/reports" element={<Reports />} />
           <Route path="/questionnaire" element={<Questionnaire />} />
           <Route path="/payment" element={<Payment />} />
-
-          {/* ADMIN */}
-          <Route
-            path="/admin"
-            element={
-              user?.role === "admin"
-                ? <AdminDashboard />
-                : <Navigate to="/" />
-            }
-          />
-
-          <Route
-            path="/admin/users"
-            element={
-              user?.role === "admin"
-                ? <AdminUsers />
-                : <Navigate to="/" />
-            }
-          />
-
         </Route>
+
+        {/* ADMIN */}
+        <Route element={<AdminRoute />}>
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+        </Route>
+
 
       </Routes>
     </>

@@ -1,26 +1,29 @@
-// rfce
-import React, { useEffect, useState } from "react";
-import { AppBar, Toolbar, Typography, Box, Avatar, IconButton } from "@mui/material";
+import React, { useContext } from "react";
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Box,
+  Avatar,
+  IconButton
+} from "@mui/material";
 import LogoutIcon from "@mui/icons-material/Logout";
+import LoginIcon from "@mui/icons-material/Login";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
 
 function Topbar() {
   const navigate = useNavigate();
-  const [user, setUser] = useState({});
-  const [profilePic, setProfilePic] = useState("");
-
-  useEffect(() => {
-    const savedUser = JSON.parse(localStorage.getItem("userData"));
-    if (savedUser) setUser(savedUser);
-
-    const pic = localStorage.getItem("profilePic");
-    if (pic) setProfilePic(pic);
-  }, []);
+  const { user, logout } = useContext(AuthContext);
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
+    logout();
     navigate("/login");
   };
+
+  const userName = user?.name || user?.fullName || "User";
+  const profileImage =
+    user?.profilePic || localStorage.getItem("profilePic") || "";
 
   return (
     <AppBar
@@ -29,32 +32,41 @@ function Topbar() {
         width: `calc(100% - 240px)`,
         ml: "240px",
         backgroundColor: "#112240",
-        boxShadow: "0px 2px 6px rgba(0,0,0,0.2)"
+        boxShadow: "0px 2px 6px rgba(0,0,0,0.3)"
       }}
     >
       <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
         
-        {/* Left - page title placeholder */}
-        <Typography variant="h6">
+        {/* Left */}
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>
           Smart Water Monitoring System
         </Typography>
 
-        {/* Right - user info */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <Typography>{user.fullName || "User"}</Typography>
-
-          <Avatar
-            src={
-              profilePic ||
-              "https://cdn-icons-png.flaticon.com/512/847/847969.png"
-            }
-          />
-
-          <IconButton onClick={handleLogout} sx={{ color: "#ff6b6b" }}>
-            <LogoutIcon />
+        {/* Right */}
+        {!user ? (
+          <IconButton onClick={() => navigate("/login")} sx={{ color: "#fff" }}>
+            <LoginIcon />
           </IconButton>
-        </Box>
+        ) : (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            
+            <Typography sx={{ fontWeight: 500 }}>
+              {userName}
+            </Typography>
 
+            <Avatar
+              src={profileImage}
+              sx={{ bgcolor: "#4fc3f7" }}
+            >
+              {userName[0]}
+            </Avatar>
+
+            <IconButton onClick={handleLogout} sx={{ color: "#ff6b6b" }}>
+              <LogoutIcon />
+            </IconButton>
+
+          </Box>
+        )}
       </Toolbar>
     </AppBar>
   );

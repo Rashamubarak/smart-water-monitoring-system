@@ -1,9 +1,31 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Typography, Button, Grid, Paper } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import api from "../services/api"; // ✅ use your axios instance
 
 function AdminDashboard() {
   const navigate = useNavigate();
+
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [totalReports, setTotalReports] = useState(0);
+
+  useEffect(() => {
+    fetchCounts();
+  }, []);
+
+  const fetchCounts = async () => {
+    try {
+      // ✅ Get all users (admin protected)
+      const usersRes = await api.get("/admin/users");
+      setTotalUsers(Array.isArray(usersRes.data) ? usersRes.data.length : 0);
+
+      // ✅ Get all reports
+      const reportsRes = await api.get("/reports");
+      setTotalReports(Array.isArray(reportsRes.data) ? reportsRes.data.length : 0);
+    } catch (error) {
+      console.error("Error fetching dashboard counts:", error);
+    }
+  };
 
   return (
     <Box p={4}>
@@ -15,8 +37,33 @@ function AdminDashboard() {
         System Administration Panel
       </Typography>
 
-      <Grid container spacing={3}>
+      {/* 🔥 Stats Section */}
+      <Grid container spacing={3} mb={4}>
+        <Grid item xs={12} md={3}>
+          <Paper elevation={3} sx={{ p: 2 }}>
+            <Typography color="text.secondary">
+              Total Users
+            </Typography>
+            <Typography variant="h5" fontWeight="600">
+              {totalUsers}
+            </Typography>
+          </Paper>
+        </Grid>
 
+        <Grid item xs={12} md={3}>
+          <Paper elevation={3} sx={{ p: 2 }}>
+            <Typography color="text.secondary">
+              Total Reports
+            </Typography>
+            <Typography variant="h5" fontWeight="600">
+              {totalReports}
+            </Typography>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Existing Feature Cards */}
+      <Grid container spacing={3}>
         {/* USERS CARD */}
         <Grid item xs={12} md={4}>
           <Paper elevation={3} sx={{ p: 3 }}>
@@ -64,7 +111,6 @@ function AdminDashboard() {
             </Button>
           </Paper>
         </Grid>
-
       </Grid>
     </Box>
   );

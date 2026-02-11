@@ -14,16 +14,29 @@ import {
 function BarChartComponent({ readings, darkMode = false }) {
 
   // Convert readings
-  const chartData = useMemo(() => {
-    if (!readings || readings.length === 0) return [];
+ const chartData = useMemo(() => {
+  if (!readings || readings.length === 0) return [];
 
-    return readings.map((r) => ({
-      date: new Date(r.date).toLocaleDateString(),
+  return readings.map((r, index) => {
+    const dateObj = new Date(r.createdAt || r.date);
+
+    return {
+      date: isNaN(dateObj)
+        ? `Reading ${index + 1}`
+        : dateObj.toLocaleString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true
+          }),
       ph: Number(r.ph),
       tds: Number(r.tds),
       turbidity: Number(r.turbidity)
-    }));
-  }, [readings]);
+    };
+  });
+}, [readings]);
+
 
   const textColor = darkMode ? "#E5E7EB" : "#374151";
   const gridColor = darkMode ? "#374151" : "#E5E7EB";

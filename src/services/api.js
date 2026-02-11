@@ -1,8 +1,10 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://water-montoring-system-backend-1.onrender.comgi",
+  baseURL: import.meta.env.VITE_API_URL,
 });
+
+console.log("API BASE URL:", import.meta.env.VITE_API_URL);
 
 // Attach token automatically
 api.interceptors.request.use((req) => {
