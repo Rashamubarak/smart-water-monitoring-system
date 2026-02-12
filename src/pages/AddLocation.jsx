@@ -18,49 +18,47 @@ function AddLocation() {
 
   const navigate = useNavigate()
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+ const handleSubmit = (e) => {
+  e.preventDefault();
 
-    // Get logged-in user
-    const email = localStorage.getItem("user");
-    if (!email) {
-      navigate("/login");
-      return;
-    }
+  const storedUser = JSON.parse(localStorage.getItem("user"));
 
-    // Load ONLY this user's saved locations
-    const existingLocations =
-      JSON.parse(localStorage.getItem(`locations_${email}`)) || [];
+  if (!storedUser) {
+    navigate("/login");
+    return;
+  }
 
-    // create new object
-    const newLocation = {
-      locationName,
-      stateName,
-      district,
-      sourceType,
-      address,
-    };
+  const email = storedUser.email;
 
-    // save back to LS for THIS USER ONLY
-    localStorage.setItem(
-      `locations_${email}`,
-      JSON.stringify([...existingLocations, newLocation])
-    );
+  const existingLocations =
+    JSON.parse(localStorage.getItem(`locations_${email}`)) || [];
 
-    setOpenSnack(true);
-
-    // reset fields
-    setLocationName("");
-    setStateName("");
-    setDistrict("");
-    setSourceType("");
-    setAddress("");
-
-    // redirect
-    setTimeout(() => {
-      navigate("/select-location");
-    }, 1000);
+  const newLocation = {
+    locationName,
+    stateName,
+    district,
+    sourceType,
+    address,
   };
+
+  localStorage.setItem(
+    `locations_${email}`,
+    JSON.stringify([...existingLocations, newLocation])
+  );
+
+  setOpenSnack(true);
+
+  setLocationName("");
+  setStateName("");
+  setDistrict("");
+  setSourceType("");
+  setAddress("");
+
+  setTimeout(() => {
+    navigate("/select-location");
+  }, 1000);
+};
+
 
   return (
     <div style={{ display: 'flex' }}>

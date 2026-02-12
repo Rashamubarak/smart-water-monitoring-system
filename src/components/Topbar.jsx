@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   AppBar,
   Toolbar,
@@ -9,12 +9,25 @@ import {
 } from "@mui/material";
 import LogoutIcon from "@mui/icons-material/Logout";
 import LoginIcon from "@mui/icons-material/Login";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 
 function Topbar() {
   const navigate = useNavigate();
   const { user, logout } = useContext(AuthContext);
+
+  const [monitoredLocation, setMonitoredLocation] = useState(null);
+
+  useEffect(() => {
+    if (!user?.email) return;
+
+    const selected = JSON.parse(
+      localStorage.getItem(`selectedLocation_${user.email}`)
+    );
+
+    setMonitoredLocation(selected);
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -36,20 +49,31 @@ function Topbar() {
       }}
     >
       <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-        
-        {/* Left */}
+
+        {/* LEFT */}
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
           Smart Water Monitoring System
         </Typography>
 
-        {/* Right */}
+        {/* CENTER - Monitored Location */}
+        {monitoredLocation && (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <LocationOnIcon sx={{ color: "#4fc3f7" }} />
+            <Typography sx={{ fontWeight: 500 }}>
+              {monitoredLocation.locationName === "Current Location"
+                ? `Current (${monitoredLocation.district})`
+                : `${monitoredLocation.locationName} (${monitoredLocation.stateName})`}
+            </Typography>
+          </Box>
+        )}
+
+        {/* RIGHT */}
         {!user ? (
           <IconButton onClick={() => navigate("/login")} sx={{ color: "#fff" }}>
             <LoginIcon />
           </IconButton>
         ) : (
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            
             <Typography sx={{ fontWeight: 500 }}>
               {userName}
             </Typography>
@@ -64,7 +88,6 @@ function Topbar() {
             <IconButton onClick={handleLogout} sx={{ color: "#ff6b6b" }}>
               <LogoutIcon />
             </IconButton>
-
           </Box>
         )}
       </Toolbar>

@@ -14,18 +14,19 @@ function AdminDashboard() {
   }, []);
 
   const fetchCounts = async () => {
-    try {
-      // ✅ Get all users (admin protected)
-      const usersRes = await api.get("/admin/users");
-      setTotalUsers(Array.isArray(usersRes.data) ? usersRes.data.length : 0);
+  try {
+    const usersRes = await api.get("/admin/users/count");
+    setTotalUsers(usersRes.data.count || 0);
 
-      // ✅ Get all reports
-      const reportsRes = await api.get("/reports");
-      setTotalReports(Array.isArray(reportsRes.data) ? reportsRes.data.length : 0);
-    } catch (error) {
-      console.error("Error fetching dashboard counts:", error);
-    }
-  };
+    const reportsRes = await api.get("/admin/reports/count");
+    setTotalReports(reportsRes.data.count || 0);
+
+  } catch (error) {
+    console.error("Error fetching dashboard counts:", error);
+  }
+};
+
+
 
   return (
     <Box p={4}>
@@ -89,7 +90,8 @@ function AdminDashboard() {
             <Button
               variant="contained"
               sx={{ mt: 2 }}
-              onClick={() => navigate("/reports")}
+             onClick={() => navigate("/admin/reports")}
+
             >
               View Reports
             </Button>

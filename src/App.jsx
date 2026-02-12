@@ -19,6 +19,7 @@ import AdminDashboard from "./admin/AdminDashboard";
 import AdminUsers from "./admin/AdminUsers";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import AdminRoute from "./AdminRoute";
+import AdminReports from "./admin/AdminReports";
 
 import CookieConsentModal from "./components/modals/CookieConsentModal";
 import LocationPermissionModal from "./components/modals/LocationPermissionModal";
@@ -117,11 +118,14 @@ function App() {
           <Route path="/payment" element={<Payment />} />
         </Route>
 
-        {/* ADMIN */}
-        <Route element={<AdminRoute />}>
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
-        </Route>
+      
+       {/* ADMIN */}
+<Route element={<AdminRoute />}>
+  <Route path="/admin" element={<AdminDashboard />} />
+  <Route path="/admin/users" element={<AdminUsers />} />
+  <Route path="/admin/reports" element={<AdminReports />} />
+</Route>
+
 
 
       </Routes>
